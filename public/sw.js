@@ -1,7 +1,7 @@
 importScripts('/src/js/idb.js');
 importScripts('/src/js/utility.js');
 
-var CACHE_STATIC_NAME = 'static-v26';
+var CACHE_STATIC_NAME = 'static-v30';
 var CACHE_DYNAMIC_NAME = 'dynamic-v2';
 var STATIC_FILES = [
   '/',
@@ -213,11 +213,25 @@ self.addEventListener('sync' , function(event) {
 
 self.addEventListener('notificationclick' , function(event) {
   var notification = event.notification;
-  var action = event.action;
 
-  console.log({notification , action});
+  event.waitUntil(
+    clients.matchAll()
+      .then(function(cl) {
+         var client = cl.find(function(c){
+           return c.visibilityState === 'visible';
+         });
 
-  notification.close();
+         if(client !== undefined) {
+           client.navigate(notification.data.url);
+         }
+         else {
+           client.openWindow(notification.data.url);
+         }
+         notification.close();
+      })
+  );
+
+
 })
 
 self.addEventListener('notificationclose', function(event) {
@@ -226,14 +240,17 @@ self.addEventListener('notificationclose', function(event) {
 
 self.addEventListener('push' , function(event) {
 
-  var data = { title : 'Default Title' , content : 'Default Contents'};
+  var data = { title : 'Default Title' , content : 'Default Contents' , openUrl : '/'};
 
   if(event.data) {
     data = JSON.parse(event.data.text());
   }
 
   var options = {
-    body : data.content
+    body : data.content,
+    data : {
+      url : data.openUrl
+    }
   };
   event.waitUntil(
     self.registration.showNotification(data.title , options)

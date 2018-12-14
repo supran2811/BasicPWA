@@ -5,11 +5,56 @@ var sharedMomentsArea = document.querySelector('#shared-moments');
 var form = document.querySelector('form');
 var titleInput = document.querySelector('#title');
 var locationInput = document.querySelector('#location');
+var videoPlayer = document.querySelector('#player');
+var canvasElement = document.querySelector('#canvas');
+var imagePickerArea = document.querySelector('#pick-image');
+var captureButton = document.querySelector('#capture-btn');
+
+function initialiseMedia() {
+  if(!('mediaDevices' in navigator)) {
+    navigator.mediaDevices = {};
+  }
+  if(!('getUserMedia' in navigator.mediaDevices)) {
+    navigator.mediaDevices.getUserMedia = function(constraint) {
+      var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+      if(!getUserMedia) {
+        return Promise.reject(new Error("Get user media does not exist!"));
+      }
+      
+      return new Promise(function(resolve,reject) {
+        getUserMedia.call(navigator , constraint , resolve , reject);
+      });
+    }
+  }
+
+  navigator.mediaDevices.getUserMedia({video:true})
+  .then(function(stream) {
+    videoPlayer.srcObject = stream;
+    videoPlayer.style.display = 'block';
+    captureButton.style.display = 'block';
+  })
+  .catch(function(error) {
+    imagePickerArea.style.display = 'block';
+  })
+}
+
+captureButton.addEventListener('click' , function(e) {
+  videoPlayer.style.display = 'none';
+  canvasElement.style.display = 'block';
+  captureButton.style.display = 'none';
+
+  var context = canvasElement.getContext('2d');
+  context.drawImage(videoPlayer , 0 , 0, canvas.width , videoPlayer.videoHeight / (videoPlayer.videoWidth/canvas.width) );
+  videoPlayer.srcObject.getVideoTracks().forEach(function(track) {
+    track.stop();
+  });
+})
 
 function openCreatePostModal() {
   // createPostArea.style.display = 'block';
   // setTimeout(function() {
     createPostArea.style.transform = 'translateY(0)';
+    initialiseMedia();
   // }, 1);
   if (deferredPrompt) {
     deferredPrompt.prompt();
@@ -39,6 +84,10 @@ function openCreatePostModal() {
 
 function closeCreatePostModal() {
   createPostArea.style.transform = 'translateY(100vh)';
+  videoPlayer.style.display = 'none';
+  imagePickerArea.style.display = 'none';
+  canvasElement.style.display = 'none';
+  captureButton.style.display = 'none';
   // createPostArea.style.display = 'none';
 }
 
