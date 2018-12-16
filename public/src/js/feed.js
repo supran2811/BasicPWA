@@ -8,7 +8,41 @@ var locationInput = document.querySelector('#location');
 var videoPlayer = document.querySelector('#player');
 var canvasElement = document.querySelector('#canvas');
 var imagePickerArea = document.querySelector('#pick-image');
+var imagePicker = document.querySelector('#image-picker');
 var captureButton = document.querySelector('#capture-btn');
+var locationBtn = document.querySelector('#location-btn');
+var locationLoader = document.querySelector('#location-loader');
+var picture;
+var locationFetched;
+
+locationBtn.addEventListener('click' , function(event) {
+
+  locationBtn.style.display = 'none';
+  locationLoader.style.display= 'inline';
+
+    navigator.geolocation.getCurrentPosition(function(position) {
+      locationFetched = { lat : position.coords.latitude.valueOf(), lng:position.coords.longitude.valueOf()};
+      locationInput.value = 'In PCMC';
+      document.querySelector('#manual-location').classList.add('is-focused');
+      locationBtn.style.display = 'inline';
+      locationLoader.style.display= 'none';
+    } ,
+    function(err) {
+       locationBtn.style.display = 'inline';
+       locationLoader.style.display= 'none';
+       alert("Error while fetching locatin please enter manually!!");
+    },
+    {
+      timeout:7000
+    });
+});
+
+
+function initialiseLocation() {
+  if( !('geolocation' in navigator )){
+    locationBtn.style.display = 'none';
+  }
+}
 
 function initialiseMedia() {
   if(!('mediaDevices' in navigator)) {
@@ -48,13 +82,20 @@ captureButton.addEventListener('click' , function(e) {
   videoPlayer.srcObject.getVideoTracks().forEach(function(track) {
     track.stop();
   });
+  picture = dataURItoBlob(canvasElement.toDataURL());
+});
+
+imagePicker.addEventListener('change' , function(event) {
+  picture = event.target.files[0];
 })
+
 
 function openCreatePostModal() {
   // createPostArea.style.display = 'block';
   // setTimeout(function() {
     createPostArea.style.transform = 'translateY(0)';
     initialiseMedia();
+    initialiseLocation();
   // }, 1);
   if (deferredPrompt) {
     deferredPrompt.prompt();
@@ -88,6 +129,8 @@ function closeCreatePostModal() {
   imagePickerArea.style.display = 'none';
   canvasElement.style.display = 'none';
   captureButton.style.display = 'none';
+  locationBtn.style.display = 'inline';
+  locationLoader.style.display = 'none';
   // createPostArea.style.display = 'none';
 }
 
@@ -174,18 +217,18 @@ if ('indexedDB' in window) {
 }
 
 function sendData() {
+  var postData = new FormData();
+  var id = new Date().toISOString();
+  postData.append('id',id);
+  postData.append('title' , titleInput.value);
+  postData.append('location' , locationInput.value);
+  postData.append('file' , picture , id + '.png');
+  postData.append('rawLocationLat' , locationFetched.lat);
+  postData.append('rawLocationLng' , locationFetched.lng);
+
   fetch('https://us-central1-pwagram-e77c1.cloudfunctions.net/storePostData',{
     method:'POST',
-    headers:{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body:JSON.stringify({
-      id: new Date().toISOString(),
-      title: titleInput.value,
-      location: locationInput.value,
-      image: "XXXX"
-    })
+    body:postData
   }).then(function() {
     console.log("Data sent!!");
   })
@@ -208,7 +251,9 @@ form.addEventListener('submit', function(event) {
           id : new Date().toISOString(),
           title: titleInput.value,
           location:locationInput.value,
-          image:"XXX"
+          picture : picture,
+          rawLocationLat:locationFetched.lat,
+          rawLocationLng:locationFetched.lng
         };
 
         writeData("sync-posts" , post)

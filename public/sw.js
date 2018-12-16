@@ -1,7 +1,7 @@
 importScripts('/src/js/idb.js');
 importScripts('/src/js/utility.js');
 
-var CACHE_STATIC_NAME = 'static-v30';
+var CACHE_STATIC_NAME = 'static-v37';
 var CACHE_DYNAMIC_NAME = 'dynamic-v2';
 var STATIC_FILES = [
   '/',
@@ -11,7 +11,7 @@ var STATIC_FILES = [
   '/src/js/feed.js',
   '/src/js/idb.js',
   '/src/js/promise.js',
-  // '/src/js/fetch.js',
+   '/src/js/utility.js',
   '/src/js/material.min.js',
   '/src/css/app.css',
   '/src/css/feed.css',
@@ -187,13 +187,18 @@ self.addEventListener('sync' , function(event) {
     event.waitUntil(
       readAllData("sync-posts").then(function(posts) {
         for(var dt of posts) {
+
+          var postData = new FormData();
+          postData.append('id',dt.id);
+          postData.append('title' , dt.title);
+          postData.append('location' , dt.location);
+          postData.append('file' , dt.picture , dt.id + '.png');
+          postData.append('rawLocationLat' , dt.rawLocationLat);
+          postData.append('rawLocationLng' , dt.rawLocationLng);
+
           fetch('https://us-central1-pwagram-e77c1.cloudfunctions.net/storePostData',{
             method:'POST',
-            headers:{
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body:JSON.stringify(dt)
+            body:postData
           }).then(function(res) {
             console.log({ res });
             if(res.ok) {
