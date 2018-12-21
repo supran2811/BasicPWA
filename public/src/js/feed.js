@@ -13,13 +13,13 @@ var captureButton = document.querySelector('#capture-btn');
 var locationBtn = document.querySelector('#location-btn');
 var locationLoader = document.querySelector('#location-loader');
 var picture;
-var locationFetched;
+var locationFetched = {lat:0,lng:0};
 
 locationBtn.addEventListener('click' , function(event) {
 
   locationBtn.style.display = 'none';
   locationLoader.style.display= 'inline';
-
+  var sawAlert = false;
     navigator.geolocation.getCurrentPosition(function(position) {
       locationFetched = { lat : position.coords.latitude.valueOf(), lng:position.coords.longitude.valueOf()};
       locationInput.value = 'In PCMC';
@@ -30,7 +30,10 @@ locationBtn.addEventListener('click' , function(event) {
     function(err) {
        locationBtn.style.display = 'inline';
        locationLoader.style.display= 'none';
-       alert("Error while fetching locatin please enter manually!!");
+       if(!sawAlert){
+        alert("Error while fetching locatin please enter manually!!");
+        sawAlert = true;
+       }
     },
     {
       timeout:7000
@@ -131,6 +134,11 @@ function closeCreatePostModal() {
   captureButton.style.display = 'none';
   locationBtn.style.display = 'inline';
   locationLoader.style.display = 'none';
+  if(videoPlayer.srcObject) {
+    videoPlayer.srcObject.getVideoTracks().forEach(function(track) {
+      track.stop();
+    });
+  }
   // createPostArea.style.display = 'none';
 }
 
